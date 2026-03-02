@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { NodeHandler, ConversationState, NodeResult } from './types';
 import { OpenAIService } from '../services/openai.service';
 import { FaqRepository } from '../services/faq.repository';
@@ -145,6 +145,7 @@ export interface ValidatorConfig {
 @Injectable()
 export class ValidatorNode implements NodeHandler {
   type = 'validator.required_fields';
+  private readonly logger = new Logger(ValidatorNode.name);
 
   constructor(private openaiService: OpenAIService) {}
 
@@ -242,9 +243,17 @@ export class ValidatorNode implements NodeHandler {
 
   async run(state: ConversationState, config: Record<string, any>): Promise<NodeResult> {
     // Get useCase from orchestrator, or use defaultUseCase from config, or fallback to 'generic'
-    const useCase = state.vars['orchestrator.openai']?.useCase || config.defaultUseCase || 'generic';
+    const orchestratorUseCase = state.vars['orchestrator.openai']?.useCase;
+    const configDefaultUseCase = config.defaultUseCase;
+    const useCase = orchestratorUseCase || configDefaultUseCase || 'generic';
+    
+    this.logger.debug(`Validator config received: ${JSON.stringify({ defaultUseCase: configDefaultUseCase, useCasesKeys: Object.keys(config.useCases || {}) })}`);
+    this.logger.debug(`UseCase resolution: orchestrator=${orchestratorUseCase}, configDefault=${configDefaultUseCase}, final=${useCase}`);
+    
     const validatorConfig = this.mergeConfig(config);
     const useCaseConfig = validatorConfig.useCases[useCase];
+    
+    this.logger.debug(`UseCaseConfig for '${useCase}': extract=${useCaseConfig?.extract}, rulesCount=${useCaseConfig?.rules?.length || 0}`);
 
     // If no config for this useCase, pass through
     if (!useCaseConfig) {
@@ -288,10 +297,13 @@ export class ValidatorNode implements NodeHandler {
     );
 
     const ready = missingFields.length === 0;
+    
+    this.logger.debug(`Validation result: ready=${ready}, missingFields=${JSON.stringify(missingFields)}, collected=${JSON.stringify(collected)}`);
 
     // Generate questions if not ready
     let questionsToAsk = '';
     if (!ready) {
+      this.logger.debug(`Generating questions for missing fields...`);
       questionsToAsk = await this.openaiService.generateValidatorQuestions(
         useCase,
         missingFields,
@@ -299,6 +311,9 @@ export class ValidatorNode implements NodeHandler {
         state.context,
       );
     }
+    
+    const nextRoute = ready ? useCase : 'not_ready';
+    this.logger.debug(`Validator returning nextRoute: ${nextRoute}`);
 
     return {
       output: {
@@ -309,7 +324,7 @@ export class ValidatorNode implements NodeHandler {
         useCase,
         appliedRules: useCaseConfig.rules.map((r) => r.label),
       },
-      nextRoute: ready ? useCase : undefined,
+      nextRoute,
     };
   }
 }
