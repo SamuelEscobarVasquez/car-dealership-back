@@ -186,6 +186,7 @@ INSERT INTO flows (id, name, description, definition, is_active) VALUES (
                 "data": {
                     "label": "Validator Autos",
                     "config": {
+                        "defaultUseCase": "autos",
                         "useCases": {
                             "autos": {
                                 "extract": "autos",
@@ -270,6 +271,7 @@ INSERT INTO flows (id, name, description, definition, is_active) VALUES (
                 "data": {
                     "label": "Validator Citas",
                     "config": {
+                        "defaultUseCase": "dates",
                         "useCases": {
                             "dates": {
                                 "extract": "dates",

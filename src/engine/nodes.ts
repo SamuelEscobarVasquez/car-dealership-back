@@ -241,7 +241,8 @@ export class ValidatorNode implements NodeHandler {
   }
 
   async run(state: ConversationState, config: Record<string, any>): Promise<NodeResult> {
-    const useCase = state.vars['orchestrator.openai']?.useCase || 'generic';
+    // Get useCase from orchestrator, or use defaultUseCase from config, or fallback to 'generic'
+    const useCase = state.vars['orchestrator.openai']?.useCase || config.defaultUseCase || 'generic';
     const validatorConfig = this.mergeConfig(config);
     const useCaseConfig = validatorConfig.useCases[useCase];
 
