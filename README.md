@@ -1,98 +1,232 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Car Dealership Chatbot - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Sistema de chatbot inteligente para concesionarios de autos con arquitectura de flujos visuales y procesamiento de lenguaje natural.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Tecnologías
 
-## Description
+| Categoría | Tecnología | Versión |
+|-----------|------------|---------|
+| Framework | NestJS | 11.x |
+| Base de datos | PostgreSQL | 15+ |
+| ORM | TypeORM | 0.3.x |
+| LLM | OpenAI GPT-4o-mini | - |
+| Runtime | Node.js | 22.x |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🏗️ Arquitectura
 
-## Project setup
+### Decisiones de Diseño
 
-```bash
-$ pnpm install
+**¿Por qué NestJS?**
+- Filosofía de **Feature Modules** que permite organización clara del código
+- Inyección de dependencias nativa para desacoplamiento
+- Decoradores que facilitan la documentación del código
+- Excelente soporte para TypeScript
+
+**¿Por qué PostgreSQL?**
+- Escalabilidad probada en producción
+- Estabilidad y madurez del ecosistema
+- Soporte nativo para JSON (ideal para definiciones de flujos)
+- Transacciones ACID
+
+### Patrón Feature Module
+
+```
+src/
+├── modules/                 # Feature Modules
+│   ├── chat/               # Módulo de conversaciones
+│   │   ├── chat.controller.ts
+│   │   ├── chat.service.ts
+│   │   └── chat.module.ts
+│   ├── flow/               # Módulo de flujos
+│   │   ├── flow.controller.ts
+│   │   ├── flow.service.ts
+│   │   └── flow.module.ts
+│   └── engine/             # Módulo del motor de ejecución
+│       └── engine.module.ts
+├── engine/                  # Core del motor de flujos
+│   ├── flow-runner.service.ts
+│   ├── node-registry.ts
+│   ├── nodes.ts
+│   └── types.ts
+├── entities/               # Entidades TypeORM
+├── services/               # Servicios compartidos
+├── dto/                    # Data Transfer Objects
+└── config/                 # Configuraciones
 ```
 
-## Compile and run the project
+## 🔧 Motor de Flujos (Flow Engine)
 
-```bash
-# development
-$ pnpm run start
+### Concepto
 
-# watch mode
-$ pnpm run start:dev
+El sistema implementa un **motor de ejecución de flujos** que permite definir visualmente cómo el chatbot procesa mensajes. Cada flujo está compuesto por:
 
-# production mode
-$ pnpm run start:prod
+- **Nodos**: Unidades de procesamiento (orquestador, especialistas, validadores)
+- **Aristas**: Conexiones condicionales entre nodos
+- **Estado**: Contexto compartido durante la ejecución
+
+### Tipos de Nodos
+
+| Tipo | Descripción |
+|------|-------------|
+| `orchestrator.openai` | Clasifica intención y rutea a especialistas |
+| `faq.specialist.openai` | Responde preguntas frecuentes |
+| `autos.specialist.openai` | Consultas de vehículos con filtros |
+| `dates.specialist.openai` | Gestión de citas |
+| `validator.usecase` | Valida campos requeridos por caso de uso |
+| `memory.load` | Carga contexto de conversación |
+| `response.compose` | Genera respuesta final |
+| `generic.response.openai` | Respuestas genéricas |
+
+### Flujo de Ejecución
+
+```
+Usuario envía mensaje
+       ↓
+┌─────────────────┐
+│  Memory Load    │  ← Carga historial de conversación
+└────────┬────────┘
+         ↓
+┌─────────────────┐
+│  Orchestrator   │  ← Clasifica intención (FAQ/Autos/Citas)
+└────────┬────────┘
+         ↓
+    [Routing]
+    /   |   \
+   ↓    ↓    ↓
+┌────┐┌────┐┌────┐
+│FAQ ││Auto││Date│  ← Especialistas
+└──┬─┘└──┬─┘└──┬─┘
+   └──┬──┴──┬──┘
+      ↓     ↓
+┌─────────────────┐
+│ Response Compose│  ← Genera respuesta final
+└─────────────────┘
 ```
 
-## Run tests
+## 📊 Modelo de Datos
+
+### Entidades Principales
+
+```
+┌─────────────────┐     ┌─────────────────┐
+│      Flow       │     │  Conversation   │
+├─────────────────┤     ├─────────────────┤
+│ id              │     │ id              │
+│ name            │     │ flowId          │
+│ definition      │◄────│ createdAt       │
+│ isActive        │     │ updatedAt       │
+│ version         │     └────────┬────────┘
+└─────────────────┘              │
+                                 │ 1:N
+                                 ↓
+                    ┌─────────────────────┐
+                    │        Turn         │
+                    ├─────────────────────┤
+                    │ id                  │
+                    │ conversationId      │
+                    │ role                │
+                    │ content             │
+                    │ createdAt           │
+                    └─────────────────────┘
+```
+
+## 🔌 API REST
+
+### Endpoints
+
+```
+GET    /api/flows              # Listar flujos
+POST   /api/flows              # Crear flujo
+GET    /api/flows/active       # Obtener flujo activo
+GET    /api/flows/:id          # Obtener flujo por ID
+PUT    /api/flows/:id          # Actualizar flujo
+DELETE /api/flows/:id          # Eliminar flujo
+POST   /api/flows/:id/activate # Activar flujo
+
+GET    /api/chat/conversations           # Listar conversaciones
+GET    /api/chat/:conversationId         # Obtener conversación
+POST   /api/chat/:conversationId/message # Enviar mensaje
+
+GET    /api/node-types         # Listar tipos de nodos disponibles
+```
+
+## 🛠️ Instalación
+
+### Requisitos
+- Node.js 22+
+- PostgreSQL 15+
+- OpenAI API Key
+
+### Variables de Entorno
 
 ```bash
-# unit tests
-$ pnpm run test
+# .env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=tu_password
+DATABASE_NAME=car_dealership
+
+OPENAI_API_KEY=sk-...
+```
+
+### Comandos
+
+```bash
+# Instalar dependencias
+npm install
+
+# Inicializar base de datos
+psql -U postgres -d car_dealership -f scripts/init-db.sql
+
+# Desarrollo
+npm run start:dev
+
+# Producción
+npm run build
+npm run start:prod
+```
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm run test
 
 # e2e tests
-$ pnpm run test:e2e
+npm run test:e2e
 
-# test coverage
-$ pnpm run test:cov
+# Coverage
+npm run test:cov
 ```
 
-## Deployment
+## 📁 Estructura de Servicios
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### OpenAI Service
+Centraliza todas las interacciones con GPT-4o-mini:
+- `orchestrate()`: Clasifica intención del usuario
+- `generateFaqAnswer()`: Genera respuestas de FAQ
+- `extractAutosFilters()`: Extrae filtros de búsqueda de vehículos
+- `extractDatesEntities()`: Extrae datos para citas
+- `extractConsultationEntities()`: Extrae datos de consultas
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Flow Runner Service
+Ejecuta flujos de manera iterativa:
+1. Carga definición del flujo activo
+2. Inicia desde nodo de entrada
+3. Ejecuta handler de cada nodo
+4. Sigue aristas según condiciones
+5. Retorna respuesta final
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+## 🔐 Buenas Prácticas Implementadas
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- **Feature Modules**: Cada funcionalidad encapsulada en su módulo
+- **DTOs con validación**: Class-validator para validación de entrada
+- **Logging estructurado**: Logger de NestJS en cada servicio
+- **Manejo de errores**: Excepciones HTTP apropiadas
+- **Configuración centralizada**: ConfigModule con validación
+- **Prefix global**: `/api` para todas las rutas
 
-## Resources
+## 📄 Licencia
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT
