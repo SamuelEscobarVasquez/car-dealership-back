@@ -8,7 +8,7 @@ export interface DateSlots {
 }
 
 export interface DatesSearchFilters {
-  date?: string; // YYYY-MM-DD
+  date?: string; // DD/MM/YYYY (formato Guatemala) - se convierte internamente a YYYY-MM-DD
   dayOfWeek?: string; // lunes, martes, etc.
   timePreference?: 'mañana' | 'tarde' | 'noche' | string;
 }
@@ -55,7 +55,9 @@ export class DatesRepository {
     let filteredDates = [...this.datesData];
 
     if (filters.date) {
-      filteredDates = filteredDates.filter((d) => d.fecha === filters.date);
+      // Convertir fecha de usuario (DD/MM/YYYY) a formato interno (YYYY-MM-DD)
+      const isoDate = this.parseUserDate(filters.date) || filters.date;
+      filteredDates = filteredDates.filter((d) => d.fecha === isoDate);
     }
 
     if (filters.dayOfWeek) {
@@ -92,7 +94,7 @@ export class DatesRepository {
         }
 
         results.push({
-          date: dateEntry.fecha,
+          date: this.formatDateForUser(dateEntry.fecha),
           dayOfWeek,
           time: this.formatTime(hour),
           isoString: slotIso,
@@ -114,7 +116,7 @@ export class DatesRepository {
       .map((d) => {
         const dateObj = new Date(d.fecha + 'T12:00:00');
         return {
-          date: d.fecha,
+          date: this.formatDateForUser(d.fecha),
           dayOfWeek: this.capitalizeFirst(this.dayNames[dateObj.getDay()]),
           slotsCount: d.slots.length,
         };
@@ -125,6 +127,27 @@ export class DatesRepository {
     const period = hour >= 12 ? 'PM' : 'AM';
     const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${hour12}:00 ${period}`;
+  }
+
+  // Convierte DD/MM/YYYY a YYYY-MM-DD (interno)
+  parseUserDate(userDate: string): string | null {
+    // Si ya está en formato ISO, devolverlo
+    if (/^\d{4}-\d{2}-\d{2}$/.test(userDate)) {
+      return userDate;
+    }
+    // Formato DD/MM/YYYY
+    const match = userDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+      const [, day, month, year] = match;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  // Convierte YYYY-MM-DD a DD/MM/YYYY (para mostrar)
+  formatDateForUser(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+    return `${day}/${month}/${year}`;
   }
 
   private capitalizeFirst(text: string): string {

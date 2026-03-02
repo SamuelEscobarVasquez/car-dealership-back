@@ -198,9 +198,9 @@ ${context?.join('\n') || 'Sin contexto previo'}`;
     const systemPrompt = `Extrae los filtros de búsqueda de autos del mensaje del usuario.
 Responde ÚNICAMENTE con un JSON válido con los campos que puedas extraer:
 {
-  "budget": number o null (presupuesto aproximado en pesos mexicanos),
-  "maxPrice": number o null (precio máximo),
-  "minPrice": number o null (precio mínimo),
+  "budget": number o null (presupuesto aproximado en GTQ - Quetzales guatemaltecos),
+  "maxPrice": number o null (precio máximo en GTQ),
+  "minPrice": number o null (precio mínimo en GTQ),
   "condition": string o null ("nuevo" o "usado"),
   "employeeDiscount": boolean o null (si menciona descuento de empleado),
   "segment": string o null (SUV, Sedán, Pickup, Hatchback, etc.),
@@ -210,9 +210,9 @@ Responde ÚNICAMENTE con un JSON válido con los campos que puedas extraer:
 }
 
 Reglas:
-- Si dice "barato" sin número, pon maxPrice: 300000
-- Si dice "económico", maxPrice: 400000
-- Si dice "de lujo" o "caro", minPrice: 600000
+- Si dice "barato" sin número, pon maxPrice: 150000 (GTQ)
+- Si dice "económico", maxPrice: 200000 (GTQ)
+- Si dice "de lujo" o "caro", minPrice: 400000 (GTQ)
 - Convierte "150k" o "150 mil" a 150000
 - Si menciona "descuento de empleado" o "soy empleado", employeeDiscount: true
 - Si dice "seminuevo" o "usado", condition: "usado"
@@ -258,7 +258,7 @@ ${context?.join('\n') || 'Sin contexto'}`;
     const vehiclesInfo = vehicles
       .map(
         (v, i) =>
-          `${i + 1}. ${v.Marca} ${v.Modelo} ${v.Año} - $${v.Precio.toLocaleString()} MXN - ${v.Segmento} - ${v.Color}\n   ${v.Descripción.substring(0, 100)}...`,
+          `${i + 1}. ${v.Marca} ${v.Modelo} ${v.Año} - Q${v.Precio.toLocaleString()} GTQ - ${v.Segmento} - ${v.Color}\n   ${v.Descripción.substring(0, 100)}...`,
       )
       .join('\n\n');
 
@@ -310,7 +310,7 @@ Hoy es: ${today}
 Responde ÚNICAMENTE con un JSON válido:
 {
   "fullName": string o null (nombre completo del cliente si lo menciona),
-  "date": string o null (formato YYYY-MM-DD si se puede determinar),
+  "date": string o null (formato DD/MM/YYYY si se puede determinar),
   "dayOfWeek": string o null (lunes, martes, miércoles, jueves, viernes, sábado, domingo),
   "timePreference": string o null (mañana, tarde, o hora específica como "3pm", "15:00"),
   "appointmentReason": string o null ("prueba_manejo" o "asesoria"),
