@@ -27,7 +27,7 @@ export class FaqRepository {
 
   private loadFaqData(): void {
     try {
-      const faqPath = path.join(process.cwd(), '..', 'car-dealership-front', 'data', 'faq.json');
+      const faqPath = path.join(process.cwd(), 'data', 'faq.json');
       const rawData = fs.readFileSync(faqPath, 'utf-8');
       this.faqData = JSON.parse(rawData);
     } catch (error) {

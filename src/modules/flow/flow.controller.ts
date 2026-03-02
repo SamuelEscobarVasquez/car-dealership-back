@@ -50,7 +50,7 @@ export class FlowController {
           label: 'Orchestrator',
           description: 'Route messages based on intent',
           category: 'ai',
-          outputs: ['faq', 'generic'],
+          outputs: ['faq', 'autos', 'dates', 'generic', 'validator'],
           config: {},
         },
         {
@@ -68,6 +68,51 @@ export class FlowController {
           description: 'Generate generic responses',
           category: 'ai',
           config: {},
+        },
+        {
+          type: 'validator.required_fields',
+          label: 'Validator',
+          description: 'Validate required fields before specialist. Configurable rules per use case.',
+          category: 'ai',
+          outputs: ['autos', 'dates', 'faq', 'generic'],
+          config: {
+            useCases: {
+              type: 'object',
+              default: {
+                dates: {
+                  extract: 'dates',
+                  rules: [
+                    { field: 'date', orFields: ['dayOfWeek'], required: true, label: 'fecha o día de la semana' }
+                  ]
+                },
+                autos: {
+                  extract: 'autos',
+                  rules: [
+                    { field: 'maxPrice', orFields: ['minPrice'], required: false, requiredWhenContains: ['barato', 'económico', 'caro', 'lujoso'], label: 'rango de precio' }
+                  ]
+                }
+              },
+              description: 'Validation rules per use case with configurable fields, triggers and labels'
+            },
+          },
+        },
+        {
+          type: 'autos.specialist.openai',
+          label: 'Autos Specialist',
+          description: 'Search vehicles catalog and respond',
+          category: 'ai',
+          config: {
+            maxResults: { type: 'number', default: 5, description: 'Max vehicles to return' },
+          },
+        },
+        {
+          type: 'dates.specialist.openai',
+          label: 'Dates Specialist',
+          description: 'Search available appointment slots',
+          category: 'ai',
+          config: {
+            maxSlots: { type: 'number', default: 5, description: 'Max slots to return' },
+          },
         },
         {
           type: 'response.compose',

@@ -6,6 +6,9 @@ import {
   GenericResponseNode,
   MemoryLoadNode,
   ResponseComposeNode,
+  ValidatorNode,
+  AutosSpecialistNode,
+  DatesSpecialistNode,
 } from './nodes';
 
 @Injectable()
@@ -18,6 +21,9 @@ export class NodeRegistry {
     private genericResponseNode: GenericResponseNode,
     private memoryLoadNode: MemoryLoadNode,
     private responseComposeNode: ResponseComposeNode,
+    private validatorNode: ValidatorNode,
+    private autosSpecialistNode: AutosSpecialistNode,
+    private datesSpecialistNode: DatesSpecialistNode,
   ) {
     this.registerHandlers();
   }
@@ -28,6 +34,9 @@ export class NodeRegistry {
     this.register(this.genericResponseNode);
     this.register(this.memoryLoadNode);
     this.register(this.responseComposeNode);
+    this.register(this.validatorNode);
+    this.register(this.autosSpecialistNode);
+    this.register(this.datesSpecialistNode);
   }
 
   register(handler: NodeHandler): void {
